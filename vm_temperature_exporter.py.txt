@@ -1,0 +1,40 @@
+
+run this script import time
+import random
+from prometheus_client import start_http_server, Gauge
+import psutil
+ 
+# Set up Prometheus Gauge
+temperature_gauge = Gauge('vm_temperature_celsius', 'Temperature of the VM in Celsius')
+ 
+def get_vm_temperature():
+    try:
+        # psutil.sensors_temperatures() returns a dictionary with temperature stats
+        temperatures = psutil.sensors_temperatures()
+        if temperatures:
+            # Assuming we're interested in the first temperature sensor available
+            for name, entries in temperatures.items():
+                if entries:
+                    return entries[0].current  # Return the first sensor's current temperature
+        else:
+            # Simulate temperature between 20 to 70 degrees Celsius if no real data is available
+            return round(random.uniform(20.0, 70.0), 2)
+    except (AttributeError, IndexError):
+        # Simulate temperature if psutil doesn't support sensors_temperatures
+        return round(random.uniform(20.0, 70.0), 2)
+ 
+def collect_temperature():
+    temp = get_vm_temperature()
+    temperature_gauge.set(temp)
+    print(f"Collected temperature: {temp}°C")
+ 
+if __name__ == '__main__':
+    # Start the HTTP server on port 8000
+    start_http_server(8000)
+    print("HTTP server started on port 8000")
+    
+    # Continuously collect temperature data
+    while True:
+        collect_temperature()
+        # Sleep for a bit before collecting data again
+        time.sleep(30)
